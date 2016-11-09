@@ -17,6 +17,6 @@ end
 get '/:filename' do
   file_path = root + '/data/' + params[:filename]
 
-  headers['Content-Type'] = 'text/plain; charset=utf8'
+  headers['Content-Type'] = 'text/plain'
   File.read file_path
 end
