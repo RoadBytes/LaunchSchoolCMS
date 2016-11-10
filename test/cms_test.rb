@@ -33,4 +33,16 @@ class CMSTest < Minitest::Test
     assert_equal 'text/plain', last_response['Content-Type']
     assert_equal history, last_response.body
   end
+
+  def test_nonexistent_documents
+    get '/nonexistent.txt'
+
+    assert_equal 302, last_response.status
+    assert_equal 'http://example.org/', last_response.location
+
+    get last_response.location
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'nonexistent.txt does not exist'
+  end
 end

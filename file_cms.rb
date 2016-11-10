@@ -4,6 +4,11 @@ require 'tilt/erubis'
 
 set :server, 'webrick'
 
+configure do
+  enable :sessions
+  set    :session_secret, 'secret'
+end
+
 root = File.expand_path('..', __FILE__)
 
 get '/' do
@@ -15,8 +20,14 @@ get '/' do
 end
 
 get '/:filename' do
-  file_path = root + '/data/' + params[:filename]
+  filename  = params[:filename]
+  file_path = root + '/data/' + filename
 
-  headers['Content-Type'] = 'text/plain'
-  File.read file_path
+  if File.file?(file_path)
+    headers['Content-Type'] = 'text/plain'
+    File.read(file_path)
+  else
+    session[:error] = "#{filename} does not exists"
+    redirect '/'
+  end
 end

@@ -1,3 +1,4 @@
+<p><%= session.delete :error if session[:error] %><p>
 <ul>
   <% @files.each do |file| %>
     <li>
