@@ -20,6 +20,7 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, 'history.txt'
     assert_includes last_response.body, 'about.txt'
     assert_includes last_response.body, 'changes.txt'
+    assert_includes last_response.body, 'markdown.md'
   end
 
   def test_text_document
@@ -44,5 +45,13 @@ class CMSTest < Minitest::Test
 
     assert_equal 200, last_response.status
     assert_includes last_response.body, 'nonexistent.txt does not exist'
+  end
+
+  def test_markdown_document
+    get '/markdown.md'
+
+    assert_equal 200, last_response.status
+    assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
+    assert_includes last_response.body, '<h1>Ruby is...</h1>'
   end
 end
