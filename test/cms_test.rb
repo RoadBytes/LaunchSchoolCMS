@@ -2,6 +2,7 @@ ENV['RACK_ENV'] = 'test'
 
 require 'minitest/autorun'
 require 'rack/test'
+require 'fileutils'
 
 require_relative '../file_cms'
 
@@ -12,28 +13,41 @@ class CMSTest < Minitest::Test
     Sinatra::Application
   end
 
+  def setup
+    FileUtils.mkdir_p(data_path)
+  end
+
+  def teardown
+    FileUtils.rm_rf(data_path)
+  end
+
+  def create_document(name, content = '')
+    File.open(File.join(data_path, name), 'w') do |file|
+      file.write(content)
+    end
+  end
+
   def test_index
+    create_document 'about.md'
+    create_document 'changes.txt'
+
     get '/'
 
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
-    assert_includes last_response.body, 'history.txt'
-    assert_includes last_response.body, "<a href='/history.txt/edit'>Edit</a>"
-    assert_includes last_response.body, 'about.txt'
+    assert_includes last_response.body, "<a href='/changes.txt/edit'>Edit</a>"
+    assert_includes last_response.body, 'about.md'
     assert_includes last_response.body, 'changes.txt'
-    assert_includes last_response.body, 'markdown.md'
   end
 
   def test_text_document
-    root      = File.expand_path('../..', __FILE__)
-    file_path = root + '/data/' + 'history.txt'
-    history   = File.read file_path
+    create_document 'history.txt', 'It was the best of times'
 
     get '/history.txt'
 
     assert_equal 200, last_response.status
     assert_equal 'text/plain', last_response['Content-Type']
-    assert_equal history, last_response.body
+    assert_equal last_response.body, 'It was the best of times'
   end
 
   def test_nonexistent_documents
@@ -49,6 +63,8 @@ class CMSTest < Minitest::Test
   end
 
   def test_markdown_document
+    create_document 'markdown.md', '# Ruby is...'
+
     get '/markdown.md'
 
     assert_equal 200, last_response.status
@@ -57,6 +73,8 @@ class CMSTest < Minitest::Test
   end
 
   def test_editing_markdown_document
+    create_document 'markdown.md', '# Ruby is...'
+
     get '/markdown.md/edit'
 
     assert_equal 200, last_response.status
@@ -64,24 +82,8 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, 'Edit content for markdown.md'
   end
 
-  def create_new_temp_file
-    root      = File.expand_path('../..', __FILE__)
-    file_path = root + '/data/' + 'temp.md'
-
-    file      = File.new(file_path, 'w')
-    file.write('# Temp file here')
-    file.close
-  end
-
-  def delete_temp_file
-    root      = File.expand_path('../..', __FILE__)
-    file_path = root + '/data/' + 'temp.md'
-
-    File.delete file_path
-  end
-
   def test_updating_markdown_document
-    create_new_temp_file
+    create_document 'temp.md', '# Ruby is...'
 
     post '/temp.md/edit', content: 'new content'
 
@@ -95,7 +97,5 @@ class CMSTest < Minitest::Test
 
     assert_equal 200, last_response.status
     assert_includes last_response.body, 'new content'
-
-    delete_temp_file
   end
 end
