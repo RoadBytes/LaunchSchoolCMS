@@ -18,6 +18,21 @@ def data_path
   end
 end
 
+def create_document(name, content = '')
+  File.open(File.join(data_path, name), 'w') do |file|
+    file.write(content)
+  end
+end
+
+def filename_valid?(filename)
+  present?(filename) &&
+    filename.match(/\.(txt$|md$|markdown$)/)
+end
+
+def present?(object)
+  object && !object.empty?
+end
+
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
   markdown.render(text)
@@ -41,6 +56,26 @@ get '/' do
   end
 
   erb :index
+end
+
+get '/new' do
+  erb :file_new
+end
+
+post '/new' do
+  new_filename = params[:new_filename].to_s.strip
+
+  if filename_valid? new_filename
+    create_document(new_filename, '')
+    session[:success] = "#{new_filename} has been created"
+
+    redirect '/'
+  else
+    session[:error] = 'A name is required ending .txt or .md or .markdown'
+    status 422
+
+    erb :file_new
+  end
 end
 
 get '/:filename' do

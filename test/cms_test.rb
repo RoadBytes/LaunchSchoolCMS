@@ -21,12 +21,6 @@ class CMSTest < Minitest::Test
     FileUtils.rm_rf(data_path)
   end
 
-  def create_document(name, content = '')
-    File.open(File.join(data_path, name), 'w') do |file|
-      file.write(content)
-    end
-  end
-
   def test_index
     create_document 'about.md'
     create_document 'changes.txt'
@@ -36,6 +30,7 @@ class CMSTest < Minitest::Test
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, "<a href='/changes.txt/edit'>Edit</a>"
+    assert_includes last_response.body, "<a href='/new'>New Document</a>"
     assert_includes last_response.body, 'about.md'
     assert_includes last_response.body, 'changes.txt'
   end
@@ -97,5 +92,29 @@ class CMSTest < Minitest::Test
 
     assert_equal 200, last_response.status
     assert_includes last_response.body, 'new content'
+  end
+
+  def test_get_new_file
+    get '/new'
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'Add a new document:'
+  end
+
+  def test_post_new_file
+    post '/new', new_filename: 'new.md'
+
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+
+    assert_includes last_response.body, 'new.md has been created'
+  end
+
+  def test_post_new_blank_filename
+    post '/new', new_filename: ''
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, 'A name is required'
   end
 end
