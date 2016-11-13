@@ -50,7 +50,7 @@ def render_file(file_path)
 end
 
 get '/' do
-  if session[:signed_in]
+  if session[:user]
     pattern = File.join(data_path, '*')
     @files = Dir.glob(pattern).map do |path|
       File.basename(path)
@@ -60,6 +60,27 @@ get '/' do
   else
     erb :sign_in
   end
+end
+
+post '/signin' do
+  username = params[:username]
+  password = params[:password]
+
+  if username == 'admin' && password == 'secret'
+    session[:user]    = username
+    session[:success] = 'Welcome'
+  else
+    session[:error] = 'Invalid Credentials'
+  end
+
+  redirect '/'
+end
+
+post '/signout' do
+  session[:user]    = nil
+  session[:success] = 'You have been signed out.'
+
+  redirect '/'
 end
 
 get '/new' do
@@ -135,4 +156,3 @@ post '/:filename/delete' do
 
   redirect '/'
 end
-

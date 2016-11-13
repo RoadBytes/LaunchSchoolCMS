@@ -34,6 +34,55 @@ class CMSTest < Minitest::Test
     refute_includes last_response.body, 'changes.txt'
   end
 
+  def test_signin_success
+    create_document 'about.md'
+    create_document 'changes.txt'
+
+    post '/signin', username: 'admin', password: 'secret'
+
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+
+    assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
+    assert_includes last_response.body, 'Welcome'
+    assert_includes last_response.body, 'about.md'
+    assert_includes last_response.body, 'changes.txt'
+    assert_includes last_response.body, 'Sign Out'
+    assert_includes last_response.body, 'Sign Out'
+  end
+
+  def test_signin_fail
+    create_document 'about.md'
+    create_document 'changes.txt'
+
+    post '/signin', username: 'admin', password: 'incorrect'
+
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+
+    assert_includes last_response.body, 'Invalid Credentials'
+    refute_includes last_response.body, 'about.md'
+    refute_includes last_response.body, 'changes.txt'
+  end
+
+  def test_signout
+    create_document 'about.md'
+    create_document 'changes.txt'
+
+    post '/signout'
+
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+
+    assert_includes last_response.body, 'You have been signed out.'
+    refute_includes last_response.body, 'about.md'
+    refute_includes last_response.body, 'changes.txt'
+
+  end
+
   # def test_index
   #   create_document 'about.md'
   #   create_document 'changes.txt'
