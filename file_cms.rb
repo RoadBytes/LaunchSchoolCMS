@@ -50,16 +50,16 @@ def render_file(file_path)
 end
 
 get '/' do
-  # if session[:signed_in]
+  if session[:signed_in]
     pattern = File.join(data_path, '*')
     @files = Dir.glob(pattern).map do |path|
       File.basename(path)
     end
 
     erb :index
-  # else
-  #   erb :sign_in
-  # end
+  else
+    erb :sign_in
+  end
 end
 
 get '/new' do
