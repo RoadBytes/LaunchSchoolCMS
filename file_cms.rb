@@ -50,12 +50,16 @@ def render_file(file_path)
 end
 
 get '/' do
-  pattern = File.join(data_path, '*')
-  @files = Dir.glob(pattern).map do |path|
-    File.basename(path)
-  end
+  # if session[:signed_in]
+    pattern = File.join(data_path, '*')
+    @files = Dir.glob(pattern).map do |path|
+      File.basename(path)
+    end
 
-  erb :index
+    erb :index
+  # else
+  #   erb :sign_in
+  # end
 end
 
 get '/new' do
@@ -117,3 +121,18 @@ post '/:filename/edit' do
 
   redirect '/'
 end
+
+post '/:filename/delete' do
+  filename = params[:filename]
+  file_path = File.join(data_path, filename)
+
+  if File.file?(file_path)
+    File.delete(file_path)
+    session[:success] = "#{filename} was deleted"
+  else
+    session[:error] = "#{filename} does not exists"
+  end
+
+  redirect '/'
+end
+

@@ -21,6 +21,19 @@ class CMSTest < Minitest::Test
     FileUtils.rm_rf(data_path)
   end
 
+  # def test_index_not_signed_in
+  #   create_document 'about.md'
+  #   create_document 'changes.txt'
+
+  #   get '/'
+
+  #   assert_equal 200, last_response.status
+  #   assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
+  #   assert_includes last_response.body, "<input type='submit' value='Sign In'>"
+  #   refute_includes last_response.body, 'about.md'
+  #   refute_includes last_response.body, 'changes.txt'
+  # end
+
   def test_index
     create_document 'about.md'
     create_document 'changes.txt'
@@ -31,6 +44,7 @@ class CMSTest < Minitest::Test
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, "<a href='/changes.txt/edit'>Edit</a>"
     assert_includes last_response.body, "<a href='/new'>New Document</a>"
+    assert_includes last_response.body, "action='about.md/delete"
     assert_includes last_response.body, 'about.md'
     assert_includes last_response.body, 'changes.txt'
   end
@@ -116,5 +130,21 @@ class CMSTest < Minitest::Test
 
     assert_equal 422, last_response.status
     assert_includes last_response.body, 'A name is required'
+  end
+
+  def test_delete_documents
+    create_document 'to_be_deleted.txt'
+
+    post '/to_be_deleted.txt/delete'
+
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+
+    assert_includes last_response.body, 'to_be_deleted.txt was deleted'
+
+    get '/'
+
+    refute_includes last_response.body, 'to_be_deleted.txt'
   end
 end
