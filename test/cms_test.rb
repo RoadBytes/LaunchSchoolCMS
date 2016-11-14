@@ -18,7 +18,7 @@ class CMSTest < Minitest::Test
   end
 
   def admin_session
-    { 'rack.session' => { username: 'admin' } }
+    { 'rack.session' => { username: 'developer' } }
   end
 
   def setup
@@ -62,17 +62,17 @@ class CMSTest < Minitest::Test
     create_document 'about.md'
     create_document 'changes.txt'
 
-    post '/signin', username: 'admin', password: 'secret'
+    post '/signin', username: 'developer', password: 'letmein'
 
     assert_equal 302, last_response.status
     assert_equal 'Welcome', session[:success]
-    assert_equal 'admin', session[:username]
+    assert_equal 'developer', session[:username]
 
     get last_response['Location']
 
     assert_includes last_response.body, 'about.md'
     assert_includes last_response.body, 'changes.txt'
-    assert_includes last_response.body, 'Signed in as admin'
+    assert_includes last_response.body, 'Signed in as developer'
     assert_includes last_response.body, 'Sign Out'
   end
 
@@ -82,12 +82,8 @@ class CMSTest < Minitest::Test
 
     post '/signin', username: 'admin', password: 'incorrect'
 
-    assert_equal 'Invalid Credentials', session[:error]
-
-    assert_equal 302, last_response.status
-
-    get last_response['Location']
-
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, 'Invalid Credentials'
     assert_nil session[:username]
     refute_includes last_response.body, 'about.md'
     refute_includes last_response.body, 'changes.txt'

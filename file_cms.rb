@@ -2,6 +2,7 @@ require 'sinatra'
 require 'sinatra/reloader' if development?
 require 'tilt/erubis'
 require 'redcarpet'
+require 'yaml'
 
 set :server, 'webrick'
 
@@ -44,6 +45,15 @@ def redirect_unsigned_users
   end
 end
 
+def load_user_credentials
+  credentials_path = if ENV['RACK_ENV'] == 'test'
+                       File.expand_path('../test/users.yml', __FILE__)
+                     else
+                       File.expand_path('../users.yml', __FILE__)
+                     end
+  YAML.load_file(credentials_path)
+end
+
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
   markdown.render(text)
@@ -74,17 +84,20 @@ get '/' do
 end
 
 post '/signin' do
+  credentials = load_user_credentials
+
   username = params[:username]
   password = params[:password]
 
-  if username == 'admin' && password == 'secret'
+  if credentials[username] == password
     session[:username] = username
     session[:success]  = 'Welcome'
+    redirect '/'
   else
     session[:error] = 'Invalid Credentials'
+    status 422
+    erb :sign_in
   end
-
-  redirect '/'
 end
 
 post '/signout' do
