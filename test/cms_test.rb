@@ -13,6 +13,10 @@ class CMSTest < Minitest::Test
     Sinatra::Application
   end
 
+  def session
+    last_request.env['rack.session']
+  end
+
   def setup
     FileUtils.mkdir_p(data_path)
   end
@@ -30,8 +34,24 @@ class CMSTest < Minitest::Test
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, "<input type='submit' value='Sign In'>"
+    assert_nil session[:username]
     refute_includes last_response.body, 'about.md'
     refute_includes last_response.body, 'changes.txt'
+  end
+
+  def test_index_signed_in
+    create_document 'about.md'
+    create_document 'changes.txt'
+
+    get '/', {}, { 'rack.session' => { username: 'admin' } }
+
+    assert_equal 200, last_response.status
+    assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
+    assert_includes last_response.body, "<a href='/changes.txt/edit'>Edit</a>"
+    assert_includes last_response.body, "<a href='/new'>New Document</a>"
+    assert_includes last_response.body, "action='about.md/delete"
+    assert_includes last_response.body, 'about.md'
+    assert_includes last_response.body, 'changes.txt'
   end
 
   def test_signin_success
@@ -41,14 +61,14 @@ class CMSTest < Minitest::Test
     post '/signin', username: 'admin', password: 'secret'
 
     assert_equal 302, last_response.status
+    assert_equal 'Welcome', session[:success]
 
     get last_response['Location']
 
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
-    assert_includes last_response.body, 'Welcome'
+    assert_equal 'admin', session[:username]
     assert_includes last_response.body, 'about.md'
     assert_includes last_response.body, 'changes.txt'
-    assert_includes last_response.body, 'Sign Out'
     assert_includes last_response.body, 'Sign Out'
   end
 
@@ -58,11 +78,13 @@ class CMSTest < Minitest::Test
 
     post '/signin', username: 'admin', password: 'incorrect'
 
+    assert_equal 'Invalid Credentials', session[:error]
+
     assert_equal 302, last_response.status
 
     get last_response['Location']
 
-    assert_includes last_response.body, 'Invalid Credentials'
+    assert_nil session[:username]
     refute_includes last_response.body, 'about.md'
     refute_includes last_response.body, 'changes.txt'
   end
@@ -74,31 +96,16 @@ class CMSTest < Minitest::Test
     post '/signout'
 
     assert_equal 302, last_response.status
+    assert_equal 'You have been signed out.', session[:success]
 
     get last_response['Location']
 
-    assert_includes last_response.body, 'You have been signed out.'
+    assert_nil session[:username]
     refute_includes last_response.body, 'about.md'
     refute_includes last_response.body, 'changes.txt'
-
   end
 
-  # def test_index
-  #   create_document 'about.md'
-  #   create_document 'changes.txt'
-
-  #   get '/'
-
-  #   assert_equal 200, last_response.status
-  #   assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
-  #   assert_includes last_response.body, "<a href='/changes.txt/edit'>Edit</a>"
-  #   assert_includes last_response.body, "<a href='/new'>New Document</a>"
-  #   assert_includes last_response.body, "action='about.md/delete"
-  #   assert_includes last_response.body, 'about.md'
-  #   assert_includes last_response.body, 'changes.txt'
-  # end
-
-  def test_text_document
+  def test_text_document_signed_in
     create_document 'history.txt', 'It was the best of times'
 
     get '/history.txt'
@@ -113,11 +120,11 @@ class CMSTest < Minitest::Test
 
     assert_equal 302, last_response.status
     assert_equal 'http://example.org/', last_response.location
+    assert_equal 'nonexistent.txt does not exist', session[:error]
 
     get last_response.location
 
     assert_equal 200, last_response.status
-    assert_includes last_response.body, 'nonexistent.txt does not exist'
   end
 
   def test_markdown_document
@@ -146,11 +153,9 @@ class CMSTest < Minitest::Test
     post '/temp.md/edit', content: 'new content'
 
     assert_equal 302, last_response.status
+    assert_equal 'temp.md has been updated.', session[:success]
 
     get last_response['Location']
-
-    assert_includes last_response.body, 'temp.md has been updated.'
-
     get '/temp.md'
 
     assert_equal 200, last_response.status
@@ -168,10 +173,7 @@ class CMSTest < Minitest::Test
     post '/new', new_filename: 'new.md'
 
     assert_equal 302, last_response.status
-
-    get last_response['Location']
-
-    assert_includes last_response.body, 'new.md has been created'
+    assert_equal 'new.md has been created', session[:success]
   end
 
   def test_post_new_blank_filename
@@ -187,13 +189,11 @@ class CMSTest < Minitest::Test
     post '/to_be_deleted.txt/delete'
 
     assert_equal 302, last_response.status
-
-    get last_response['Location']
-
-    assert_includes last_response.body, 'to_be_deleted.txt was deleted'
+    assert_equal 'to_be_deleted.txt was deleted', session[:success]
 
     get '/'
 
-    refute_includes last_response.body, 'to_be_deleted.txt'
+    refute_includes last_response.body,
+                    "<a href='/to_be_deleted.txt'>to_be_deleted.txt</a>"
   end
 end

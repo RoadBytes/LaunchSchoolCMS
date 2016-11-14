@@ -50,7 +50,7 @@ def render_file(file_path)
 end
 
 get '/' do
-  if session[:user]
+  if session[:username]
     pattern = File.join(data_path, '*')
     @files = Dir.glob(pattern).map do |path|
       File.basename(path)
@@ -67,8 +67,8 @@ post '/signin' do
   password = params[:password]
 
   if username == 'admin' && password == 'secret'
-    session[:user]    = username
-    session[:success] = 'Welcome'
+    session[:username] = username
+    session[:success]  = 'Welcome'
   else
     session[:error] = 'Invalid Credentials'
   end
@@ -77,8 +77,8 @@ post '/signin' do
 end
 
 post '/signout' do
-  session[:user]    = nil
-  session[:success] = 'You have been signed out.'
+  session[:username] = nil
+  session[:success]  = 'You have been signed out.'
 
   redirect '/'
 end
@@ -110,7 +110,7 @@ get '/:filename' do
   if File.file?(file_path)
     render_file(file_path)
   else
-    session[:error] = "#{filename} does not exists"
+    session[:error] = "#{filename} does not exist"
     redirect '/'
   end
 end
@@ -123,7 +123,7 @@ get '/:filename/edit' do
     @file = File.read(file_path)
     erb :file_edit
   else
-    session[:error] = "#{@filename} does not exists"
+    session[:error] = "#{@filename} does not exist"
     redirect '/'
   end
 end
@@ -137,7 +137,7 @@ post '/:filename/edit' do
     session[:success] = "#{@filename} has been updated."
     @file = File.write(file_path, @content)
   else
-    session[:error] = "#{@filename} does not exists"
+    session[:error] = "#{@filename} does not exist"
   end
 
   redirect '/'
@@ -151,7 +151,7 @@ post '/:filename/delete' do
     File.delete(file_path)
     session[:success] = "#{filename} was deleted"
   else
-    session[:error] = "#{filename} does not exists"
+    session[:error] = "#{filename} does not exist"
   end
 
   redirect '/'
