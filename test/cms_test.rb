@@ -62,13 +62,13 @@ class CMSTest < Minitest::Test
 
     assert_equal 302, last_response.status
     assert_equal 'Welcome', session[:success]
+    assert_equal 'admin', session[:username]
 
     get last_response['Location']
 
-    assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
-    assert_equal 'admin', session[:username]
     assert_includes last_response.body, 'about.md'
     assert_includes last_response.body, 'changes.txt'
+    assert_includes last_response.body, 'Signed in as admin'
     assert_includes last_response.body, 'Sign Out'
   end
 
@@ -119,12 +119,7 @@ class CMSTest < Minitest::Test
     get '/nonexistent.txt'
 
     assert_equal 302, last_response.status
-    assert_equal 'http://example.org/', last_response.location
     assert_equal 'nonexistent.txt does not exist', session[:error]
-
-    get last_response.location
-
-    assert_equal 200, last_response.status
   end
 
   def test_markdown_document
@@ -155,7 +150,6 @@ class CMSTest < Minitest::Test
     assert_equal 302, last_response.status
     assert_equal 'temp.md has been updated.', session[:success]
 
-    get last_response['Location']
     get '/temp.md'
 
     assert_equal 200, last_response.status
@@ -174,6 +168,9 @@ class CMSTest < Minitest::Test
 
     assert_equal 302, last_response.status
     assert_equal 'new.md has been created', session[:success]
+
+    get '/', {}, { 'rack.session' => { username: 'admin' } }
+    assert_includes last_response.body, "href='/new.md'"
   end
 
   def test_post_new_blank_filename
