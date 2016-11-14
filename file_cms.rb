@@ -33,6 +33,17 @@ def present?(object)
   object && !object.empty?
 end
 
+def signed_in?
+  !!session[:username]
+end
+
+def redirect_unsigned_users
+  unless signed_in?
+    session[:error] = 'You must be signed in to do that'
+    redirect '/'
+  end
+end
+
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
   markdown.render(text)
@@ -84,10 +95,14 @@ post '/signout' do
 end
 
 get '/new' do
+  redirect_unsigned_users
+
   erb :file_new
 end
 
 post '/new' do
+  redirect_unsigned_users
+
   new_filename = params[:new_filename].to_s.strip
 
   if filename_valid? new_filename
@@ -116,6 +131,8 @@ get '/:filename' do
 end
 
 get '/:filename/edit' do
+  redirect_unsigned_users
+
   @filename = params[:filename]
   file_path = File.join(data_path, @filename)
 
@@ -129,6 +146,8 @@ get '/:filename/edit' do
 end
 
 post '/:filename/edit' do
+  redirect_unsigned_users
+
   @filename = params[:filename]
   @content  = params[:content]
   file_path = File.join(data_path, @filename)
@@ -144,6 +163,8 @@ post '/:filename/edit' do
 end
 
 post '/:filename/delete' do
+  redirect_unsigned_users
+
   filename = params[:filename]
   file_path = File.join(data_path, filename)
 
