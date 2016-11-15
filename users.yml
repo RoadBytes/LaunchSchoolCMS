@@ -1,3 +1,2 @@
 ---
-admin: secret
-sonia: soniaspassword
+admin: $2a$10$rtCtxBKOz3CklhG2IXiDY.mDHCOKmCadBun2TQaMj2CJC3EZMcIye

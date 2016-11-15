@@ -3,6 +3,7 @@ require 'sinatra/reloader' if development?
 require 'tilt/erubis'
 require 'redcarpet'
 require 'yaml'
+require 'bcrypt'
 
 set :server, 'webrick'
 
@@ -70,6 +71,15 @@ def render_file(file_path)
   end
 end
 
+def valid_sign_in?(username, password)
+  credentials   = load_user_credentials
+  password_hash = credentials[username]
+
+  return false if password_hash.nil?
+  bcrypt_obj = BCrypt::Password.new(password_hash)
+  bcrypt_obj == password
+end
+
 get '/' do
   if session[:username]
     pattern = File.join(data_path, '*')
@@ -84,12 +94,10 @@ get '/' do
 end
 
 post '/signin' do
-  credentials = load_user_credentials
-
   username = params[:username]
   password = params[:password]
 
-  if credentials[username] == password
+  if valid_sign_in?(username, password)
     session[:username] = username
     session[:success]  = 'Welcome'
     redirect '/'
